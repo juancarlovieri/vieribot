@@ -1,0 +1,20 @@
+{
+  "name": "vieri_bot",
+  "version": "1.0.0",
+  "description": "",
+  "main": "bot.js",
+  "dependencies": {
+    "axios": "^0.19.2",
+    "body-parser": "^1.19.0",
+    "discord.js": "^12.2.0",
+    "express": "^4.17.1",
+    "node-telegram-bot-api": "^0.50.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node bot.js"
+  },
+  "author": "Juan Carlo Vieri",
+  "license": "ISC"
+}
