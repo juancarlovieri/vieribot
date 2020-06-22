@@ -33,14 +33,6 @@ bot.onText(/\/start/, (msg) => {
 // Listen for any kind of message. There are different kinds of
 // messages.
 bot.on('message', (msg) => {
-  // var request = require('request');
-  //   request('https://codeforces.com/contest/492/submission/29516826', function (error, response, body) {
-  //   if (!error && response.statusCode == 200) {
-  //     console.log(body);
-  //    body = body.toString();
-  //    var html = body.split('\n');
-  //   }
-  // });
   var args = msg.text.split(" ");
   if(args[0][0] == ';'){
     switch(args[0]){
