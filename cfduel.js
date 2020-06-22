@@ -223,13 +223,13 @@ module.exports = {
             var res = [];
             if(points.has(msg.from.username)){
               res = points.get(msg.from.username);
-              res[res.length] = res[res.length - 1] + problem.get(msg.from.username).rating;
+              res[res.length] = res[res.length - 1] + 10 + (((problem.get(msg.from.username).rating - 800) / (100))) * ((problem.get(msg.from.username).rating - 800) / (100));
             } else{
-              res[0] = problem.get(msg.from.username).rating;
+              res[0] = 10 + (((problem.get(msg.from.username).rating - 800) / (100))) * ((problem.get(msg.from.username).rating - 800) / (100));
             }
             points.set(msg.from.username, res);
             save();
-            bot.sendMessage(msg.chat.id, '@' + msg.from.username + ' gained ' + problem.get(msg.from.username).rating + ' points');
+            bot.sendMessage(msg.chat.id, '@' + msg.from.username + ' gained ' + 10 + (((problem.get(msg.from.username).rating - 800) / (100))) * ((problem.get(msg.from.username).rating - 800) / (100)) + ' points');
             problem.delete(msg.from.username);
             return;
           } else{
