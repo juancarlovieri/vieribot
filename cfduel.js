@@ -15,6 +15,8 @@ var regisTemp = new Map();
 var auth = require('./auth.json');
 var plotly = require('plotly')('juancarlovieri', auth.plotly);
 
+function ratingArr(){return rating;}
+
 function download(uri, filename, callback){
   const request = require('request');
   request.head(uri, function(err, res, body){
@@ -184,6 +186,13 @@ function shuffleArray(array) {
     [array[i], array[j]] = [array[j], array[i]];
   }
   return array;
+}
+
+function sort(s) {
+  s[Symbol.iterator] = function*() {
+    yield* [...this.entries()].sort((a, b) => b[1] - a[1]);
+  };
+  return s;
 }
 
 module.exports = {
@@ -414,6 +423,34 @@ module.exports = {
         bot.sendMessage(msg.chat.id, 'problem for @' + msg.from.username + 'and @' + challenge.get(msg.from.username)[0] + ': https://codeforces.com/contest/' + problems[indx].contestId + '/problem/' + problems[indx].index);
         challenge.delete(msg.from.username);
       break;
+      case 'top':
+        var counter = 1;
+        var hasil = "";
+        if(args[2] == 'point'){
+          var arr = new Map();
+          points.forEach(function print(val, key){
+            arr.set(key, val[val.length - 1]);
+          });
+          arr = sort(arr);
+          arr.forEach(function print(val, key){
+            hasil += counter.toString() + ". " + key + ' - ' + val.toString() + '\n';
+            counter++;
+          });
+        } else if(args[2] == 'rating'){
+          var arr = new Map();
+          ratingArr().forEach(function print(val, key){
+            arr.set(key, val[val.length - 1]);
+          });
+          arr = sort(arr);
+          arr.forEach(function print(val, key){
+            hasil += counter.toString() + ". " + key + ' - ' + val.toString() + '\n';
+            counter++;
+          });
+        }
+        if(hasil != ""){
+          bot.sendMessage(msg.chat.id, hasil);
+        }
+      break;
       case 'challenge':
         var args = msg.text.split(' ');
         if(args.length != 4){
@@ -491,6 +528,65 @@ module.exports = {
         problem.set(msg.from.username, problems[indx]);
         save();
         bot.sendMessage(msg.chat.id, 'problem for @' + msg.from.username + ': https://codeforces.com/contest/' + problems[indx].contestId + '/problem/' + problems[indx].index);
+      break;
+      case 'contest':
+        var averageRating = 0;
+        var contestant = [];
+        if(args.length == 2){
+          if(map.has(msg.from.username) == false){
+            bot.sendMessage(msg.chat.id, 'register your handle first!');
+            return;
+          }
+          contestant[0] = map.get(msg.from.username);
+        } else{
+          for(var i = 2; i < args.length; i++){
+            if(map.has(args[i]) == 0){
+            bot.sendMessage(msg.chat.id, args[i] + ' haven\'t registered his/her handle');
+            return;
+          } 
+            contestant[contestant.length] = map.get(args[i]);
+          }
+        }
+        var names = "";
+        for(var i = 0; i < contestant.length; i++){
+          averageRating += takeRating(contestant[i]);
+          names += ' ' + contestant[i];
+        }
+        averageRating = Math.round(averageRating / contestant.length);
+        console.log('new contest');
+        var request = require('sync-request');
+        var list = request('GET', 'http://codeforces.com/api/contest.list?gym=false');
+        var contests = JSON.parse(list.getBody()).result;
+        var indx = -1;
+        contests = shuffleArray(contests);
+        for(var temp = 0; temp < contests.length; temp++){
+          if(contests[temp].phase != "FINISHED")continue;
+          if(averageRating < 1600 && contests[temp].name.indexOf("Div. 3") < 0){
+            continue;
+          } else if(averageRating >= 1900 && contests[temp].name.indexOf("Div. 1") < 0){
+            continue;
+          } else if(averageRating >= 1600 && averageRating < 1900 && contests[temp].name.indexOf("Div. 2") < 0){
+            continue;
+          }
+          var can = 1;
+          for(var i = 0; i < contestant.length; i++){
+            var request2 = require('sync-request');
+            var submissions = request2('GET', 'http://codeforces.com/api/contest.status?contestId=' + contests[temp].id + '&from=1&count=1000000&handle=' + contestant[i]);
+            var submission = JSON.parse(submissions.getBody()).result;
+            if(submission.length != 0)can = 0;
+          }
+          if(can == 1){
+            indx = temp;
+            break;
+          }
+        }
+        if(indx == -1){
+          bot.sendMessage(msg.chat.id, 'internal error, contact developer');
+          console.log('problem index not found');
+          return;
+        }
+        console.log(indx);
+        bot.sendMessage(msg.chat.id, 'recommended contest for ' + names + ': https://codeforces.com/contest/' + contests[indx].id);
       break;
       case 'regisdone':
         if(regisTemp.has(msg.from.username) == false){
