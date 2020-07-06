@@ -82,18 +82,18 @@ function save(){
 function win(winner, looser){
   var ratingW = [];
   if(rating.has(winner) == false){
-    ratingW = [1500];
+    ratingW = [];
   } else{
     ratingW = rating.get(winner);
   }
   var ratingL = 0;
   if(rating.has(looser) == false){
-    ratingL = 1500;
+    ratingL = [];
   } else{
     ratingL = rating.get(looser);
   }
-  ratingW[ratingW.length] = ratingW[ratingW.length - 1] + 50;
-  ratingL[ratingL.length] = ratingL[ratingL.length - 1] - 50;
+  ratingW[ratingW.length] = (ratingW.length == 0) ? (1500 + 50) : (ratingW[ratingW.length - 1] + 50);
+  ratingL[ratingL.length] = (ratingL.length == 0) ? (1500 - 50) : (ratingL[ratingL.length - 1] - 50);
   rating.set(winner, ratingW);
   rating.set(looser, ratingL);
   save();
@@ -177,7 +177,7 @@ function getDuelRating(user){
       return rating.get(user);
     }
   }
-  return 
+  console.log('error');
 }
 
 function shuffleArray(array) {
@@ -252,7 +252,7 @@ module.exports = {
           bot.sendMessage(msg.chat.id, 'that\'s not a valid thing');
           break;
         }
-        bot.sendMessage(msg.chat.id, getDuelRating(args[2]));
+        bot.sendMessage(msg.chat.id, getDuelRating(args[2]).toString());
       break;
       case 'ratinggraph':
         printRatingGraph(msg, bot);
@@ -529,8 +529,101 @@ module.exports = {
         save();
         bot.sendMessage(msg.chat.id, 'problem for @' + msg.from.username + ': https://codeforces.com/contest/' + problems[indx].contestId + '/problem/' + problems[indx].index);
       break;
+      case 'cfgraph':
+        var contestants = [];
+        if(args.length == 2){
+          contestants = [msg.from.username];
+        } else{
+          for(var i = 2; i < args.length; i++){
+            contestants[contestants.length] = args[i];
+          }
+        }
+        var data = [];
+        var names = "cf rating graph for ";
+        for(var i = 0; i < contestants.length; i++){
+          if(map.has(contestants[i]) == false){
+            bot.sendMessage(msg.chat.id, contestants[i] + ' haven\'t registered his/her handle');
+            return;
+          }
+          names += contestants[i] + ' ';
+          var request = require('sync-request');
+          var ratings = JSON.parse(request('GET', 'http://codeforces.com/api/user.rating?handle=' + map.get(contestants[i])).getBody()).result;
+          var temp = {
+            x: [],
+            y: [],
+            name: contestants[i],
+            type: "scatter"
+          };
+          for(var j = 0; j < ratings.length; j++){
+            temp.y[temp.y.length] = ratings[j].newRating;
+          }
+          for(var j = 0; j < temp.y.length; j++){
+            temp.x[temp.x.length] = j + 1;
+          }
+          console.log(temp);
+          data[data.length] = temp;
+        }
+        console.log(contestants);
+        if(data.length == 0)return;
+        console.log(data);
+        var graphOptions = {filename: 'umum', fileopt: "overwrite"};
+        plotly.plot(data, graphOptions, function (err, mesg) {
+          console.log(mesg);
+          var request = require('request');
+          download(mesg.url + '.jpeg', 'display.png', function(){
+            bot.sendPhoto(msg.chat.id, 'display.png', { caption: names } ) 
+          });
+        });
+      break;
+      case 'cfgraphhandle':
+        var contestants = [];
+        if(args.length == 2){
+          contestants = [msg.from.username];
+        } else{
+          for(var i = 2; i < args.length; i++){
+            contestants[contestants.length] = args[i];
+          }
+        }
+        var data = [];
+        var names = "cf rating graph for ";
+        for(var i = 0; i < contestants.length; i++){
+          names += contestants[i] + ' ';
+          var request = require('sync-request');
+          if(JSON.parse(request('GET', 'http://codeforces.com/api/user.rating?handle=' + contestants[i]).getBody()).status != "OK"){
+            bot.sendMessage(msg.chat.id, contestants[i] + ' not found');
+            return;
+          }
+          var ratings = JSON.parse(request('GET', 'http://codeforces.com/api/user.rating?handle=' + contestants[i]).getBody()).result;
+          var temp = {
+            x: [],
+            y: [],
+            name: contestants[i],
+            type: "scatter"
+          };
+          for(var j = 0; j < ratings.length; j++){
+            temp.y[temp.y.length] = ratings[j].newRating;
+          }
+          for(var j = 0; j < temp.y.length; j++){
+            temp.x[temp.x.length] = j + 1;
+          }
+          console.log(temp);
+          data[data.length] = temp;
+        }
+        console.log(contestants);
+        if(data.length == 0)return;
+        console.log(data);
+        var graphOptions = {filename: 'umum', fileopt: "overwrite"};
+        plotly.plot(data, graphOptions, function (err, mesg) {
+          console.log(mesg);
+          var request = require('request');
+          download(mesg.url + '.jpeg', 'display.png', function(){
+            bot.sendPhoto(msg.chat.id, 'display.png', { caption: names } ) 
+          });
+        });
+      break;
       case 'contest':
         var averageRating = 0;
+        averageRating = 0;
         var contestant = [];
         if(args.length == 2){
           if(map.has(msg.from.username) == false){
@@ -549,11 +642,12 @@ module.exports = {
         }
         var names = "";
         for(var i = 0; i < contestant.length; i++){
-          averageRating += takeRating(contestant[i]);
+          averageRating += parseInt(takeRating(contestant[i]));
           names += ' ' + contestant[i];
         }
         averageRating = Math.round(averageRating / contestant.length);
         console.log('new contest');
+        console.log(averageRating);
         var request = require('sync-request');
         var list = request('GET', 'http://codeforces.com/api/contest.list?gym=false');
         var contests = JSON.parse(list.getBody()).result;
@@ -563,9 +657,9 @@ module.exports = {
           if(contests[temp].phase != "FINISHED")continue;
           if(averageRating < 1600 && contests[temp].name.indexOf("Div. 3") < 0){
             continue;
-          } else if(averageRating >= 1900 && contests[temp].name.indexOf("Div. 1") < 0){
+          } else if(averageRating > 2100 && contests[temp].name.indexOf("Div. 1") < 0){
             continue;
-          } else if(averageRating >= 1600 && averageRating < 1900 && contests[temp].name.indexOf("Div. 2") < 0){
+          } else if(averageRating >= 1600 && averageRating <= 2100 && contests[temp].name.indexOf("Div. 2") < 0){
             continue;
           }
           var can = 1;

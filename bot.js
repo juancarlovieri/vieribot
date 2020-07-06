@@ -6,6 +6,10 @@ const token = require('./auth.json').token;
 // Create a bot that uses 'polling' to fetch new updates
 const bot = new TelegramBot(token, {polling: true});
 const cfduel = require('./cfduel.js');
+const cfreminder = require('./reminder.js');
+const wolfram = require('./wolfram.js');
+
+cfreminder.remind(bot);
 
 // Matches "/echo [whatever]"
 bot.onText(/\/echo (.+)/, (msg, match) => {
@@ -39,6 +43,9 @@ bot.on('message', (msg) => {
       case ';duel':
         cfduel.duel(bot, msg);
       break; 
+      case ';ask':
+        wolfram.ask(bot, msg);
+      break;
     }
     return;
   }
