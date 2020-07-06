@@ -10,7 +10,7 @@ module.exports = {
       }
     }
     if(indx == -1){
-      bot.sendMessage(-1001265467717, 'internal error, contct developer');
+      bot.sendMessage(-1001265467717, 'internal error, contact developer');
       return;
     }
     setTimeout(function(){
